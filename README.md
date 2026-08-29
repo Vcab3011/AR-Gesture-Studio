@@ -98,3 +98,11 @@ AR-gesture/
    python cat/gesture_meme.py
    ```
 3. Press `q` or `Esc` to exit.
+
+---
+
+## Author & Credits
+
+- **Developer**: [Khanh Tran (Vcab3011)](https://github.com/Vcab3011)
+- **GitHub**: [https://github.com/Vcab3011](https://github.com/Vcab3011)
+- **Repository**: [https://github.com/Vcab3011/AR-Gesture-Studio](https://github.com/Vcab3011/AR-Gesture-Studio)
