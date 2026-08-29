@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Gesture Meme Cat Cam</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --bg: #090a0f;
+      --panel-bg: rgba(15, 23, 42, 0.85);
+      --border-color: rgba(255, 255, 255, 0.12);
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      color: #fff;
+      user-select: none;
+    }
+    
+    .app-container {
+      position: relative;
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      background: var(--bg);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    /* Layout: Split Mode (Default) */
+    .app-container.layout-split {
+      flex-direction: row;
+    }
+    @media (orientation: portrait) {
+      .app-container.layout-split {
+        flex-direction: column;
+      }
+    }
+
+    .pane {
+      position: relative;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .camera-pane {
+      flex: 1;
+      height: 100%;
+      width: 100%;
+      border-right: 1px solid #1e222d;
+    }
+    @media (orientation: portrait) {
+      .camera-pane {
+        border-right: none;
+        border-bottom: 1px solid #1e222d;
+      }
+    }
+
+    .meme-pane {
+      flex: 1;
+      height: 100%;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    /* Layout: PiP Cam Mode (Meme full, Cam floating) */
+    .app-container.layout-pip-cam .meme-pane {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    .app-container.layout-pip-cam .camera-pane {
+      position: absolute;
+      bottom: calc(75px + var(--safe-bottom));
+      right: 16px;
+      width: 135px;
+      height: 180px;
+      flex: none;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      z-index: 15;
+    }
+
+    /* Layout: PiP Meme Mode (Cam full, Meme floating) */
+    .app-container.layout-pip-meme .camera-pane {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    .app-container.layout-pip-meme .meme-pane {
+      position: absolute;
+      bottom: calc(75px + var(--safe-bottom));
+      right: 16px;
+      width: 150px;
+      height: 150px;
+      flex: none;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      z-index: 15;
+    }
+
+    #videoWrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      transition: transform 0.2s ease;
+    }
+    #video.unmirrored {
+      transform: scaleX(1);
+    }
+
+    #overlayCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      pointer-events: none;
+      z-index: 5;
+    }
+    #overlayCanvas.unmirrored {
+      transform: scaleX(1);
+    }
+
+    #memeImg, #memeVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #050505;
+      transition: transform 0.15s ease;
+    }
+
+    /* Bounce effect on meme tap */
+    .meme-bounce {
+      animation: catBounce 0.4s ease-out;
+    }
+    @keyframes catBounce {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.08) rotate(3deg); }
+      60% { transform: scale(0.96) rotate(-2deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    /* Gesture Name Badge on Meme Pane */
+    .gesture-badge {
+      position: absolute;
+      top: calc(12px + env(safe-area-inset-top, 0px));
+      right: 16px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+      padding: 8px 14px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .gesture-badge:active {
+      transform: scale(0.95);
+    }
+    .gesture-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+
+    #debugHud {
+      position: absolute;
+      top: calc(12px + env(safe-area-inset-top, 0px));
+      left: 14px;
+      color: #a7f3d0;
+      background: rgba(10, 15, 25, 0.85);
+      backdrop-filter: blur(10px);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: pre;
+      pointer-events: none;
+      z-index: 20;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+    #debugHud.hidden {
+      display: none;
+    }
+
+    /* Screen Double-Tap Hint Overlay */
+    .tap-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #cbd5e1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 25;
+      backdrop-filter: blur(6px);
+    }
+
+    /* Floating UI Controls Toolbar (Modern Glassmorphic Mobile Dock) */
+    .controls-dock {
+      position: fixed;
+      bottom: var(--safe-bottom);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      border-radius: 34px;
+      z-index: 50;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75);
+      max-width: calc(100vw - 24px);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .controls-dock::-webkit-scrollbar {
+      display: none;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 7px 11px;
+      border-radius: 22px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .btn.active {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .btn-snapshot {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border: none;
+      color: #fff;
+      font-weight: 600;
+      padding: 7px 14px;
+      box-shadow: 0 2px 10px rgba(236, 72, 153, 0.4);
+    }
+
+    /* Gesture Catalog Drawer (Bottom Sheet) */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      z-index: 150;
+      display: flex;
+      align-items: flex-end;
+      transition: opacity 0.3s ease;
+    }
+    .drawer-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .drawer-content {
+      width: 100%;
+      max-height: 80vh;
+      background: #0f172a;
+      border-top: 1px solid var(--border-color);
+      border-radius: 24px 24px 0 0;
+      padding: 12px 18px calc(24px + var(--safe-bottom));
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+      transform: translateY(0);
+      transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    .drawer-overlay.hidden .drawer-content {
+      transform: translateY(100%);
+    }
+
+    .drawer-handle-bar {
+      display: flex;
+      justify-content: center;
+      padding: 6px 0 10px;
+    }
+    .drawer-handle {
+      width: 44px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 3px;
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .drawer-header h3 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .close-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #cbd5e1;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .gesture-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+      overflow-y: auto;
+      padding-right: 4px;
+      max-height: 60vh;
+      -webkit-overflow-scrolling: touch;
+    }
+    .gesture-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .gesture-card:active {
+      transform: scale(0.96);
+      border-color: var(--primary);
+    }
+    .gesture-card-img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      background: #000;
+    }
+    .gesture-card-body {
+      padding: 8px 10px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .gesture-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 2px;
+    }
+    .gesture-card-desc {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+
+    /* Flash Animation on Snapshot */
+    .flash-overlay {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+      transition: opacity 0.1s ease-out;
+    }
+    .flash-overlay.flashing {
+      opacity: 0.85;
+      transition: none;
+    }
+
+    /* Snapshot Toast */
+    .toast {
+      position: fixed;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(16, 185, 129, 0.95);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Loading Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 10, 15, 0.96);
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+      text-align: center;
+    }
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .overlay p {
+      color: #94a3b8;
+      font-size: 14px;
+      max-width: 440px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .start-btn {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      border: none;
+      padding: 13px 30px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 26px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .start-btn:hover {
+      transform: scale(1.03);
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-banner {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-top: 16px;
+      max-width: 480px;
+      font-size: 13px;
+      text-align: left;
+      line-height: 1.4;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Flash Effect Overlay for Snapshot -->
+  <div id="flashOverlay" class="flash-overlay"></div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">📸 Đã lưu ảnh kỷ niệm!</div>
+
+  <!-- Loading / Start Modal Overlay -->
+  <div id="loadingOverlay" class="overlay">
+    <div id="spinner" class="spinner"></div>
+    <h2 id="overlayTitle">Đang nạp mô hình AI...</h2>
+    <p id="overlayDesc">MediaPipe Vision Models đang được tải về từ CDN.</p>
+    <button id="startBtn" class="start-btn" style="display: none;">🚀 Mở Camera</button>
+    <div id="errorBanner" class="error-banner"></div>
+  </div>
+
+  <!-- Main App Container -->
+  <div id="appContainer" class="app-container layout-split">
+    
+    <!-- Camera Pane -->
+    <div class="pane camera-pane" id="cameraPane">
+      <div id="videoWrap">
+        <video id="video" playsinline muted autoplay></video>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
+      <div id="debugHud">Đang nhận diện...</div>
+      <div id="tapHint" class="tap-hint">Chạm 2 lần để đổi camera</div>
+    </div>
+    
+    <!-- Meme Cat Pane -->
+    <div class="pane meme-pane" id="memePane" title="Chạm vào con mèo để rung!">
+      <div id="gestureBadge" class="gesture-badge" title="Chạm để xem hướng dẫn cử chỉ">
+        <span class="dot"></span>
+        <span id="badgeText">Mặc định</span>
+      </div>
+      <img id="memeImg" src="memes/pokercat.jpg" alt="Meme Cat" />
+      <video id="memeVideo" playsinline muted autoplay loop style="display: none;"></video>
+    </div>
+  </div>
+
+  <!-- Floating Mobile Controls Dock -->
+  <div class="controls-dock">
+    <a href="../flower/lily.html" class="btn" style="text-decoration:none; background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(244,114,182,0.35)); border-color: rgba(245,158,11,0.5); color:#fef08a;" title="Chuyển sang AR Hoa nở trực tiếp trên camera">🌸 Flora AR</a>
+    <a href="../" class="btn" style="text-decoration:none;" title="Về trang chủ Hub">🏠 Hub</a>
+    <button id="btnFullscreen" class="btn" title="Toàn màn hình">⛶ Phóng to</button>
+    <button id="btnPhoneMode" class="btn active" title="Lọc tay cầm điện thoại khi quay video">📱 Lọc cầm đt</button>
+    <button id="btnSwitchCam" class="btn" title="Đổi camera trước/sau">🔄 Đổi Cam</button>
+    <button id="btnLayout" class="btn" title="Đổi bố cục hiển thị">🪟 Bố cục</button>
+    <button id="btnSnapshot" class="btn btn-snapshot" title="Chụp ảnh selfie cùng mèo">📸 Chụp ảnh</button>
+    <button id="btnGuide" class="btn" title="Danh sách cử chỉ">📖 Cử chỉ</button>
+    <button id="btnSound" class="btn active" title="Bật/tắt âm thanh meow">🔊 Tiếng</button>
+    <button id="btnMirror" class="btn active" title="Lật gương camera">🪞 Gương</button>
+    <button id="btnSkeleton" class="btn active" title="Bật/tắt khung xương tay">🦴 Khung</button>
+    <button id="btnHud" class="btn active" title="Bật/tắt thông số">📊 HUD</button>
+  </div>
+
+  <!-- Gesture Catalog Bottom Sheet Drawer -->
+  <div id="gestureDrawer" class="drawer-overlay hidden">
+    <div class="drawer-content">
+      <div class="drawer-handle-bar">
+        <div class="drawer-handle"></div>
+      </div>
+      <div class="drawer-header">
+        <h3>🐱 Danh Sách 17 Cử Chỉ Mèo</h3>
+        <button id="btnCloseDrawer" class="close-btn">✕</button>
+      </div>
+      <div class="gesture-grid" id="gestureGrid">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

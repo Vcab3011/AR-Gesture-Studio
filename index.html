@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>✨ AI Gesture Studio - Flora AR & Cat Cam Hub</title>
+  <meta name="description" content="Trung tâm trải nghiệm AI Gesture Studio: Vườn hoa AR tương tác cử chỉ & Camera Mèo Meme." />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --glass-bg: rgba(15, 23, 42, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --primary-flora: #f472b6;
+      --primary-cat: #3b82f6;
+      --gold: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #070913 50%, #020617 100%);
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Animated Ambient Lights */
+    .ambient-glow {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.55;
+      animation: pulse-ambient 8s ease-in-out infinite alternate;
+    }
+    .glow-1 {
+      top: -100px;
+      left: -100px;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, #f43f5e, transparent 70%);
+    }
+    .glow-2 {
+      bottom: -100px;
+      right: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #3b82f6, transparent 70%);
+      animation-delay: -4s;
+    }
+    @keyframes pulse-ambient {
+      0% { transform: scale(0.9) translate(0, 0); opacity: 0.45; }
+      100% { transform: scale(1.15) translate(30px, 30px); opacity: 0.65; }
+    }
+
+    /* Header Nav */
+    header {
+      width: 100%;
+      max-width: 1080px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .brand-icon {
+      font-size: 28px;
+      filter: drop-shadow(0 0 12px rgba(244, 114, 182, 0.8));
+    }
+    .brand-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fef08a 0%, #fbcfe8 50%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+
+    .dev-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      border-radius: 20px;
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .dev-badge:hover {
+      transform: scale(1.05);
+      border-color: #f59e0b;
+      box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+    }
+    .dev-badge strong {
+      color: #fef08a;
+    }
+
+    /* Main Container */
+    main {
+      width: 100%;
+      max-width: 1080px;
+      padding: 10px 24px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      z-index: 10;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fbcfe8;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 6vw, 54px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 30%, #fed7aa 70%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(14px, 2.5vw, 17px);
+      color: #94a3b8;
+      max-width: 620px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    /* Studio Cards Grid */
+    .studio-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+    }
+
+    .studio-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+    .studio-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 28px;
+      padding: 1.5px;
+      background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .studio-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    .card-flora:hover {
+      border-color: rgba(244, 114, 182, 0.6);
+      box-shadow: 0 20px 60px rgba(244, 114, 182, 0.3);
+    }
+    .card-cat:hover {
+      border-color: rgba(59, 130, 246, 0.6);
+      box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
+    }
+
+    .card-icon-wrap {
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    .card-flora .card-icon-wrap {
+      background: linear-gradient(135deg, #f43f5e, #ec4899, #f59e0b);
+      box-shadow: 0 12px 32px rgba(244, 63, 94, 0.4);
+    }
+    .card-cat .card-icon-wrap {
+      background: linear-gradient(135deg, #3b82f6, #6366f1, #06b6d4);
+      box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+    }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+
+    .card-desc {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      flex: 1;
+    }
+
+    .feature-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .tag {
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    .card-btn {
+      width: 100%;
+      padding: 14px 24px;
+      border-radius: 18px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .card-flora .card-btn {
+      background: linear-gradient(135deg, #f43f5e, #ec4899);
+      box-shadow: 0 8px 24px rgba(244, 63, 94, 0.4);
+    }
+    .card-cat .card-btn {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+    }
+    .studio-card:hover .card-btn {
+      transform: scale(1.02);
+    }
+
+    /* Footer */
+    footer {
+      width: 100%;
+      max-width: 1080px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #64748b;
+      z-index: 10;
+    }
+    footer a {
+      color: #fef08a;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .studio-grid {
+        grid-template-columns: 1fr;
+      }
+      .studio-card {
+        padding: 24px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light Bokeh -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <!-- Header -->
+  <header>
+    <a href="#" class="brand-logo">
+      <span class="brand-icon">✨</span>
+      <span class="brand-title">AI Gesture Studio</span>
+    </a>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="hero-tag">🌟 MediaPipe AI Vision • Web Audio Synthesizer</div>
+    <h1>Khám Phá Không Gian Tương Tác Cử Chỉ AI</h1>
+    <p class="hero-subtitle">
+      Trải nghiệm công nghệ nhận diện cử chỉ 2 bàn tay theo thời gian thực trên Camera. Hãy chọn một ứng dụng bên dưới để bắt đầu:
+    </p>
+
+    <!-- Studio Grid -->
+    <div class="studio-grid">
+      
+      <!-- Card 1: Flora AR Studio -->
+      <a href="flower/lily.html" class="studio-card card-flora">
+        <div class="card-icon-wrap">🌸</div>
+        <h2 class="card-title">Flora AR Studio</h2>
+        <p class="card-desc">
+          Vườn hoa AR thực tế ảo sống động. Điều khiển 7 loài hoa vươn cao và bung nở lộng lẫy bằng cử chỉ 2 ngón tay, thu phóng cảm ứng, chọn nhiều hoa cùng nở và chụp ảnh selfie AR.
+        </p>
+        <div class="feature-tags">
+          <span class="tag">⚜️ 7 Loài Hoa Tuyệt Đẹp</span>
+          <span class="tag">🌿 Cử Chỉ 2 Tay</span>
+          <span class="tag">✨ Chọn Nhiều Hoa</span>
+          <span class="tag">🤏 Thu Phóng Cảm Ứng</span>
+          <span class="tag">🌐 EN / VI</span>
+        </div>
+        <div class="card-btn">
+          <span>🌸 Mở Flora AR Studio</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- Card 2: Cat Cam Meme -->
+      <a href="cat/index.html" class="studio-card card-cat">
+        <div class="card-icon-wrap">🐱</div>
+        <h2 class="card-title">Meow Meow Cat Cam</h2>
+        <p class="card-desc">
+          Camera nhận diện cử chỉ tay thông minh với 8 meme mèo hài hước, phản hồi âm thanh meow sinh động, bộ lọc chống nhiễu khi cầm điện thoại và chụp ảnh kỷ niệm.
+        </p>
+        <div class="feature-tags">
+          <span class="tag">😹 8 Meme Mèo Hài Hước</span>
+          <span class="tag">🔊 Hiệu Ứng Âm Thanh</span>
+          <span class="tag">📱 Lọc Cầm Điện Thoại</span>
+          <span class="tag">📸 Chụp Ảnh Meme</span>
+        </div>
+        <div class="card-btn">
+          <span>🚀 Mở Meow Cat Cam</span>
+          <span>→</span>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>AI Gesture Studio • Trải nghiệm thị giác máy tính theo thời gian thực</p>
+    <p>Hỗ trợ đầy đủ iPhone, iPad (Safari), Android và Desktop qua giao thức HTTPS</p>
+  </footer>
+
+</body>
+</html>

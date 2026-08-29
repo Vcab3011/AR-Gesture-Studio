@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Flora Bloom 🌸 - Thị Giác Máy Tính: Sinh Trưởng & Nở Hoa</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --panel-bg: rgba(13, 17, 27, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --emerald-glow: #10b981;
+      --emerald-light: #34d399;
+      --pink-glow: #ec4899;
+      --pink-light: #f472b6;
+      --gold-glow: #f59e0b;
+      --cyan-glow: #06b6d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Background Ambient Canvas & Gradient */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15), transparent 50%),
+                  radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.18), transparent 50%),
+                  radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.10), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top Navigation Bar */
+    .top-navbar {
+      position: fixed;
+      top: 12px;
+      left: 16px;
+      right: 16px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: rgba(13, 17, 27, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      z-index: 50;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      font-size: 22px;
+      filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.6));
+      animation: gentle-spin 12s linear infinite;
+    }
+    @keyframes gentle-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .brand-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #a7f3d0 0%, #fbcfe8 50%, #fed7aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:active {
+      transform: scale(0.95);
+    }
+    .nav-btn-highlight {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(16, 185, 129, 0.3));
+      border-color: rgba(236, 72, 153, 0.4);
+    }
+
+    /* Main Container */
+    .app-container {
+      position: absolute;
+      top: 72px;
+      bottom: 84px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    /* Layout modes */
+    .app-container.layout-split {
+      flex-direction: row;
+    }
+    .app-container.layout-split.is-swapped {
+      flex-direction: row-reverse;
+    }
+    @media (orientation: portrait) {
+      .app-container.layout-split {
+        flex-direction: column;
+      }
+      .app-container.layout-split.is-swapped {
+        flex-direction: column-reverse;
+      }
+    }
+
+    /* Layout: Flower Solo */
+    .app-container.layout-flower-solo .camera-pane {
+      display: none;
+    }
+    .app-container.layout-flower-solo .flower-pane {
+      flex: 1;
+    }
+
+    /* Layout: PiP */
+    .app-container.layout-pip {
+      position: absolute;
+    }
+    .app-container.layout-pip .flower-pane {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+    }
+    .app-container.layout-pip .camera-pane {
+      position: absolute;
+      width: 220px;
+      height: 165px;
+      border-radius: 16px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      z-index: 30;
+    }
+    .app-container.layout-pip.pip-br .camera-pane { bottom: 16px; right: 16px; }
+    .app-container.layout-pip.pip-tr .camera-pane { top: 16px; right: 16px; }
+    .app-container.layout-pip.pip-tl .camera-pane { top: 16px; left: 16px; }
+    .app-container.layout-pip.pip-bl .camera-pane { bottom: 16px; left: 16px; }
+
+    /* Pane base styles */
+    .pane {
+      flex: 1;
+      position: relative;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Camera Pane */
+    .camera-pane {
+      position: relative;
+    }
+    #videoWrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    #video.unmirrored {
+      transform: scaleX(1);
+    }
+    #overlayCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      pointer-events: none;
+    }
+    #overlayCanvas.unmirrored {
+      transform: scaleX(1);
+    }
+
+    /* Flower Botanical Art Pane */
+    .flower-pane {
+      background: radial-gradient(circle at 50% 80%, rgba(13, 23, 20, 0.9), #05070a 90%);
+      position: relative;
+      cursor: crosshair;
+    }
+    #flowerCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Floating Real-time HUD Gauges */
+    .hud-meters {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .hud-meter {
+      background: rgba(10, 15, 26, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 190px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+    .meter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .meter-grow .meter-header { color: var(--emerald-light); }
+    .meter-bloom .meter-header { color: var(--pink-light); }
+
+    .meter-bar-track {
+      width: 100%;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .meter-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.08s ease-out;
+    }
+    .meter-grow .meter-bar-fill {
+      background: linear-gradient(90deg, #10b981, #6ee7b7);
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+    }
+    .meter-bloom .meter-bar-fill {
+      background: linear-gradient(90deg, #ec4899, #f472b6, #fbcfe8);
+      box-shadow: 0 0 10px rgba(244, 114, 182, 0.8);
+    }
+
+    .sub-meter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .sub-meter-val {
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .meter-hint {
+      font-size: 9.5px;
+      color: #64748b;
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    /* Species Title Badge on Flower Pane */
+    .species-badge {
+      position: absolute;
+      bottom: 14px;
+      left: 16px;
+      padding: 8px 16px;
+      background: rgba(10, 15, 26, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .species-badge:active {
+      transform: scale(0.96);
+    }
+    .species-badge-icon {
+      font-size: 16px;
+    }
+    .species-badge-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    /* Controls Dock */
+    .controls-dock {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      background: rgba(13, 17, 27, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      z-index: 60;
+      max-width: calc(100vw - 32px);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .controls-dock::-webkit-scrollbar {
+      display: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 42px;
+      padding: 0 14px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn:active {
+      transform: scale(0.92);
+    }
+    .btn.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.25));
+      border-color: rgba(52, 211, 153, 0.5);
+      color: #6ee7b7;
+    }
+    .btn-snapshot {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border: none;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+    }
+    .btn-snapshot:hover {
+      box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
+    }
+
+    /* Species Picker Bottom Sheet Drawer */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      z-index: 150;
+      display: flex;
+      align-items: flex-end;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+    .drawer-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .drawer-content {
+      width: 100%;
+      max-height: 80vh;
+      background: rgba(15, 23, 42, 0.98);
+      border-top: 1px solid var(--glass-border);
+      border-radius: 28px 28px 0 0;
+      padding: 16px 20px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transform: translateY(0);
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+      overflow-y: auto;
+    }
+    .drawer-overlay.hidden .drawer-content {
+      transform: translateY(100%);
+    }
+    .drawer-handle-bar {
+      display: flex;
+      justify-content: center;
+    }
+    .drawer-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+    }
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .drawer-header h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .species-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .species-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .species-card:active, .species-card.selected {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(16, 185, 129, 0.25));
+      border-color: rgba(236, 72, 153, 0.6);
+      transform: scale(1.02);
+    }
+    .species-card-icon {
+      font-size: 32px;
+    }
+    .species-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .species-card-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+
+    /* Flash Overlay for snapshot */
+    .flash-overlay {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+      transition: opacity 0.1s ease-out;
+    }
+    .flash-overlay.flashing {
+      opacity: 0.85;
+      transition: none;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(16, 185, 129, 0.95);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Loading Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 9, 14, 0.96);
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+      text-align: center;
+      transition: opacity 0.4s ease;
+    }
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border: 4px solid rgba(236, 72, 153, 0.2);
+      border-top-color: #ec4899;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 24px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .overlay h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #a7f3d0, #fbcfe8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .overlay p {
+      font-size: 14px;
+      color: #94a3b8;
+      max-width: 360px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .start-btn {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #10b981, #06b6d4, #ec4899);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .start-btn:active {
+      transform: scale(0.95);
+    }
+    .error-banner {
+      margin-top: 16px;
+      padding: 12px 18px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 12px;
+      color: #fca5a5;
+      font-size: 13px;
+      max-width: 400px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Ambient Glow -->
+  <div class="ambient-bg"></div>
+
+  <!-- Snapshot Flash & Toast -->
+  <div id="flashOverlay" class="flash-overlay"></div>
+  <div id="toast" class="toast">📸 Đã lưu tác phẩm hoa!</div>
+
+  <!-- Loading / Start Modal Overlay -->
+  <div id="loadingOverlay" class="overlay">
+    <div id="spinner" class="spinner"></div>
+    <h2 id="overlayTitle">Flora Bloom 🌸</h2>
+    <p id="overlayDesc">Đang khởi tạo mô hình thị giác AI và động cơ sinh trưởng thực vật...</p>
+    <button id="startBtn" class="start-btn" style="display: none;">🌿 Bắt Đầu Trải Nghiệm</button>
+    <div id="errorBanner" class="error-banner"></div>
+  </div>
+
+  <!-- Top Navbar -->
+  <header class="top-navbar">
+    <div class="brand-group">
+      <span class="brand-icon">🌸</span>
+      <span class="brand-title">Flora Bloom</span>
+    </div>
+    <div class="nav-actions">
+      <a href="lily.html" class="nav-btn nav-btn-highlight" style="background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(244,114,182,0.35)); border-color: rgba(245,158,11,0.5); color:#fef08a;" title="Chuyển sang AR Hoa Ly nở trực tiếp trên camera">⚜️ Lily AR</a>
+      <a href="index.html" class="nav-btn nav-btn-highlight" title="Quay lại Cat Cam">🐱 Cat Cam</a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main id="appContainer" class="app-container layout-split">
+    
+    <!-- Camera Pane -->
+    <div class="pane camera-pane" id="cameraPane">
+      <div id="videoWrap">
+        <video id="video" playsinline muted autoplay></video>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
+    </div>
+    
+    <!-- Interactive Botanical Canvas Pane -->
+    <div class="pane flower-pane" id="flowerPane">
+      <!-- Real-time HUD Gauges -->
+      <div class="hud-meters">
+        <div class="hud-meter meter-grow">
+          <div class="meter-header">
+            <span>🌿 TAY TRÁI (GROW)</span>
+            <span id="growValueText">0%</span>
+          </div>
+          <div class="meter-bar-track">
+            <div id="growBar" class="meter-bar-fill"></div>
+          </div>
+          <div class="sub-meter-row">
+            <span>🌱 Thân vươn cao:</span>
+            <span id="stemValueText" class="sub-meter-val">0%</span>
+          </div>
+          <div class="sub-meter-row">
+            <span>🍃 Cành lá đâm chồi:</span>
+            <span id="foliageValueText" class="sub-meter-val">0%</span>
+          </div>
+          <div class="meter-hint">Cái+Trỏ: Chiều cao | Xòe các ngón: Cành lá</div>
+        </div>
+
+        <div class="hud-meter meter-bloom">
+          <div class="meter-header">
+            <span>🌸 TAY PHẢI (BLOOM)</span>
+            <span id="bloomValueText">0%</span>
+          </div>
+          <div class="meter-bar-track">
+            <div id="bloomBar" class="meter-bar-fill"></div>
+          </div>
+          <div class="sub-meter-row">
+            <span>🌺 Cánh hoa bung xòe:</span>
+            <span id="petalValueText" class="sub-meter-val">0%</span>
+          </div>
+          <div class="sub-meter-row">
+            <span>✨ Phấn hoa & Hào quang:</span>
+            <span id="sparkleValueText" class="sub-meter-val">0%</span>
+          </div>
+          <div class="meter-hint">Cái+Trỏ: Nở hoa | Xòe ngón / Út: Bụi phấn ma thuật</div>
+        </div>
+      </div>
+
+      <!-- Canvas for Generative Botanical Growth & Bloom -->
+      <canvas id="flowerCanvas"></canvas>
+
+      <!-- Active Species Selector Badge -->
+      <div id="speciesBadge" class="species-badge" title="Chạm để chọn loài hoa khác">
+        <span id="speciesBadgeIcon" class="species-badge-icon">🪷</span>
+        <span id="speciesBadgeName" class="species-badge-name">Hoa Sen Thần Thoại</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Controls Dock -->
+  <nav class="controls-dock">
+    <button id="btnSpecies" class="btn" title="Chọn loài hoa">🪷 Đổi Hoa</button>
+    <button id="btnLayout" class="btn" title="Đổi bố cục hiển thị">🪟 Bố cục</button>
+    <button id="btnSwap" class="btn" title="Đảo chỗ Camera và Hoa">🔁 Đảo chỗ</button>
+    <button id="btnSwitchCam" class="btn" title="Đổi camera trước/sau">🔄 Đổi Cam</button>
+    <button id="btnSnapshot" class="btn btn-snapshot" title="Chụp ảnh lưu tác phẩm">📸 Chụp ảnh</button>
+    <button id="btnSound" class="btn active" title="Bật/tắt âm thanh thiên nhiên">🔊 Âm thanh</button>
+    <button id="btnFullscreen" class="btn" title="Toàn màn hình">⛶ Phóng to</button>
+    <button id="btnMirror" class="btn active" title="Lật gương camera">🪞 Gương</button>
+    <button id="btnSkeleton" class="btn active" title="Bật/tắt tia năng lượng tay">✨ Tia sáng</button>
+  </nav>
+
+  <!-- Species Picker Drawer -->
+  <div id="speciesDrawer" class="drawer-overlay hidden">
+    <div class="drawer-content">
+      <div class="drawer-handle-bar">
+        <div class="drawer-handle"></div>
+      </div>
+      <div class="drawer-header">
+        <h3>🪷 Chọn Loài Hoa Tương Tác</h3>
+        <button id="btnCloseDrawer" class="close-btn">✕</button>
+      </div>
+      <div class="species-grid" id="speciesGrid">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="flower.js"></script>
+</body>
+</html>

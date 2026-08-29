@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Flora AR Studio 🌸 - Vườn Hoa Tương Tác Cử Chỉ AR</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #05070a;
+      --glass-bg: rgba(10, 15, 26, 0.82);
+      --glass-border: rgba(255, 255, 255, 0.16);
+      --lily-pink: #f472b6;
+      --lily-gold: #f59e0b;
+      --lily-green: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-overscroll-behavior: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      background-color: var(--bg-dark);
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Fullscreen AR Camera & Canvas Stage */
+    .ar-stage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      background: #000;
+    }
+
+    #video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      touch-action: none;
+      pointer-events: none;
+    }
+    #video.unmirrored {
+      transform: scaleX(1);
+    }
+
+    #arCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      touch-action: none;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* Top Floating Header */
+    .top-bar {
+      position: fixed;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      z-index: 50;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      font-size: 24px;
+      filter: drop-shadow(0 0 10px rgba(244, 114, 182, 0.8));
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(244, 114, 182, 0.7)); }
+      50% { transform: scale(1.1); filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.9)); }
+    }
+    .brand-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 19px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fef08a 0%, #fbcfe8 50%, #6ee7b7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .nav-pill:active {
+      transform: scale(0.95);
+    }
+
+    /* Developer Watermark */
+    .dev-watermark-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(244, 114, 182, 0.4);
+      border-radius: 12px;
+      color: #f8fafc;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 12px rgba(244, 114, 182, 0.25);
+    }
+    .dev-watermark-pill:hover {
+      background: rgba(244, 114, 182, 0.2);
+      border-color: #f472b6;
+      transform: translateY(-1px);
+    }
+    .dev-watermark-pill strong {
+      color: #fef08a;
+    }
+
+    .corner-watermark {
+      position: fixed;
+      bottom: 84px;
+      right: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      background: rgba(10, 15, 26, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      border-radius: 16px;
+      color: #f8fafc;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 55;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(245, 158, 11, 0.25);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .corner-watermark:hover {
+      transform: scale(1.05);
+      border-color: #f59e0b;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 158, 11, 0.45);
+    }
+    .corner-watermark .wm-gh {
+      color: #fef08a;
+    }
+    .corner-watermark .wm-sparkle {
+      font-size: 13px;
+    }
+
+    /* Active Flower Chips Bar */
+    .flowers-chips-bar {
+      position: fixed;
+      top: 72px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 6px 0;
+      z-index: 45;
+    }
+    .flowers-chips-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .flower-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 16px;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+    .flower-chip.active {
+      background: linear-gradient(135deg, rgba(244, 114, 182, 0.35), rgba(245, 158, 11, 0.35));
+      border-color: #f472b6;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(244, 114, 182, 0.6);
+      transform: scale(1.04);
+    }
+    .flower-chip-btn-add {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: 1px solid rgba(52, 211, 153, 0.6);
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    /* Floating Real-time HUD Gauges (Draggable anywhere) */
+    .hud-meters {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    .hud-meter {
+      position: fixed;
+      background: rgba(10, 15, 26, 0.86);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 8px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 175px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      pointer-events: auto;
+      touch-action: none;
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .hud-meter:active {
+      cursor: grabbing;
+      transform: scale(1.03);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
+    }
+    .hud-meter.meter-grow {
+      top: 118px;
+      left: 14px;
+      border-color: rgba(52, 211, 153, 0.4);
+    }
+    .hud-meter.meter-bloom {
+      top: 118px;
+      right: 14px;
+      border-color: rgba(244, 114, 182, 0.4);
+    }
+    .meter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .meter-grow .meter-header { color: #6ee7b7; }
+    .meter-bloom .meter-header { color: #f472b6; }
+
+    .meter-bar-track {
+      width: 100%;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .meter-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.08s ease-out;
+    }
+    .meter-grow .meter-bar-fill {
+      background: linear-gradient(90deg, #10b981, #6ee7b7);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.8);
+    }
+    .meter-bloom .meter-bar-fill {
+      background: linear-gradient(90deg, #f472b6, #fbcfe8, #fef08a);
+      box-shadow: 0 0 12px rgba(244, 114, 182, 0.8);
+    }
+
+    .sub-meter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .sub-meter-val {
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .meter-hint {
+      font-size: 9px;
+      color: #64748b;
+      font-weight: 500;
+      line-height: 1.1;
+    }
+
+    /* Floating AR Action Dock */
+    .controls-dock {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+      z-index: 60;
+      max-width: calc(100vw - 28px);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .controls-dock::-webkit-scrollbar {
+      display: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 40px;
+      padding: 0 13px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      color: #e2e8f0;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn:active {
+      transform: scale(0.92);
+    }
+    .btn.active {
+      background: linear-gradient(135deg, rgba(244, 114, 182, 0.3), rgba(245, 158, 11, 0.3));
+      border-color: rgba(244, 114, 182, 0.6);
+      color: #fbcfe8;
+    }
+    .btn-add-flower {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: 1px solid rgba(52, 211, 153, 0.6);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45);
+    }
+    .btn-gesture {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(244, 114, 182, 0.25));
+      border-color: rgba(168, 85, 247, 0.5);
+      color: #f5d0fe;
+    }
+    .btn-gesture.active {
+      background: linear-gradient(135deg, #a855f7, #ec4899);
+      border: none;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.6);
+    }
+    .btn-snapshot {
+      background: linear-gradient(135deg, #f43f5e, #ec4899, #f59e0b);
+      border: none;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 4px 18px rgba(244, 63, 94, 0.5);
+    }
+
+    /* Species Picker Modal / Drawer */
+    .species-drawer {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 7, 12, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .species-drawer.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer-content {
+      width: 100%;
+      max-width: 580px;
+      max-height: 80vh;
+      background: #0f172a;
+      border: 1px solid var(--glass-border);
+      border-radius: 28px 28px 0 0;
+      padding: 24px;
+      overflow-y: auto;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .species-drawer.open .drawer-content {
+      transform: translateY(0);
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .drawer-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: #f8fafc;
+    }
+    .btn-close-drawer {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #94a3b8;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .species-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .species-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      text-align: center;
+    }
+    .species-card:active {
+      transform: scale(0.95);
+    }
+    .species-card:hover {
+      background: rgba(244, 114, 182, 0.15);
+      border-color: #f472b6;
+      transform: translateY(-2px);
+    }
+    .species-card-icon {
+      font-size: 34px;
+      filter: drop-shadow(0 0 8px rgba(244, 114, 182, 0.6));
+    }
+    .species-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .species-card-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+
+    /* Flash Overlay for snapshot */
+    .flash-overlay {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+      transition: opacity 0.1s ease-out;
+    }
+    .flash-overlay.flashing {
+      opacity: 0.85;
+      transition: none;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(16, 185, 129, 0.95);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Loading Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 9, 14, 0.96);
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+      text-align: center;
+      transition: opacity 0.4s ease;
+    }
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border: 4px solid rgba(244, 114, 182, 0.2);
+      border-top-color: #f472b6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 24px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .overlay h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #fef08a, #fbcfe8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .overlay p {
+      font-size: 14px;
+      color: #94a3b8;
+      max-width: 380px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .start-btn {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #f43f5e, #ec4899, #f59e0b);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(244, 63, 94, 0.45);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .start-btn:active {
+      transform: scale(0.95);
+    }
+    .error-banner {
+      margin-top: 16px;
+      padding: 12px 18px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 12px;
+      color: #fca5a5;
+      font-size: 13px;
+      max-width: 400px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fullscreen AR Stage -->
+  <div class="ar-stage">
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="arCanvas"></canvas>
+  </div>
+
+  <!-- Snapshot Flash & Toast -->
+  <div id="flashOverlay" class="flash-overlay"></div>
+  <div id="toast" class="toast">📸 Đã lưu tác phẩm AR!</div>
+
+  <!-- Loading / Start Modal Overlay -->
+  <div id="loadingOverlay" class="overlay">
+    <div id="spinner" class="spinner"></div>
+    <h2 id="overlayTitle">Flora AR Studio 🌸</h2>
+    <p id="overlayDesc">Đang khởi tạo camera AR và động cơ vườn hoa tương tác cử chỉ...</p>
+    <button id="startBtn" class="start-btn" style="display: none;">🌸 Mở Vườn Hoa AR</button>
+    <div id="errorBanner" class="error-banner"></div>
+  </div>
+
+  <!-- Top Floating Header -->
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-icon">🌸</span>
+      <span class="brand-title">Flora AR Studio</span>
+    </div>
+    <div class="nav-links">
+      <button id="btnLang" class="nav-pill" style="cursor: pointer; background: linear-gradient(135deg, rgba(244, 114, 182, 0.25), rgba(245, 158, 11, 0.25)); border-color: #f472b6;" title="Chuyển đổi ngôn ngữ / Switch Language">🌐 EN / VI</button>
+      <a href="flower.html" class="nav-pill" title="Mô phỏng chia màn hình">✨ Solo Mode</a>
+      <a href="cat/index.html" class="nav-pill" title="Meme Cat Cam">🐱 Cat Cam</a>
+      <a href="./" class="nav-pill" title="Trang chủ / Home Hub">🏠 Hub</a>
+    </div>
+  </header>
+
+  <!-- Active Flowers Chips Carousel -->
+  <div id="flowersChipsBar" class="flowers-chips-bar">
+    <!-- Populated dynamically via JS -->
+  </div>
+
+  <!-- Real-time HUD Gauges for Currently Selected Flower (Draggable Box) -->
+  <div class="hud-meters">
+    <div id="meterGrow" class="hud-meter meter-grow">
+      <div class="meter-header">
+        <span id="activeGrowLabel">🌿 LEFT (GROW)</span>
+        <span id="growValueText">0%</span>
+      </div>
+      <div class="meter-bar-track">
+        <div id="growBar" class="meter-bar-fill"></div>
+      </div>
+      <div class="sub-meter-row">
+        <span id="stemHeightLabelText">🌱 Stem Height:</span>
+        <span id="stemValueText" class="sub-meter-val">0%</span>
+      </div>
+      <div id="growMeterHint" class="meter-hint">⋮⋮ Kéo thả • Cái+Trỏ: Cao</div>
+    </div>
+
+    <div id="meterBloom" class="hud-meter meter-bloom">
+      <div class="meter-header">
+        <span id="activeBloomLabel">🌸 RIGHT (BLOOM)</span>
+        <span id="bloomValueText">0%</span>
+      </div>
+      <div class="meter-bar-track">
+        <div id="bloomBar" class="meter-bar-fill"></div>
+      </div>
+      <div class="sub-meter-row">
+        <span id="flowerActiveName">⚜️ Selected:</span>
+        <span id="petalValueText" class="sub-meter-val">0%</span>
+      </div>
+      <div id="bloomMeterHint" class="meter-hint">⋮⋮ Kéo thả • Cái+Trỏ: Nở</div>
+    </div>
+  </div>
+
+  <!-- Species Picker Drawer -->
+  <div id="speciesDrawer" class="species-drawer">
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <h3>🌸 Chọn Loài Hoa Muốn Thêm</h3>
+        <button id="btnCloseDrawer" class="btn-close-drawer">✕</button>
+      </div>
+      <div id="speciesGrid" class="species-grid">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls Dock -->
+  <nav class="controls-dock">
+    <button id="btnAddFlower" class="btn btn-add-flower" title="Thêm loài hoa mới vào vườn">➕ Thêm Hoa</button>
+    <button id="btnSelectAll" class="btn" title="Chọn tất cả hoa để cùng nở">✨ Chọn Tất Cả</button>
+    <button id="btnGesture" class="btn btn-gesture" title="Bật/Tắt điều khiển cử chỉ cho hoa đang chọn">🖐️ Khởi động cử chỉ</button>
+    <button id="btnZoomOut" class="btn" title="Thu nhỏ kích thước hoa (Hoặc dùng 2 ngón tay chụm)">🔍 Thu nhỏ</button>
+    <button id="btnZoomIn" class="btn" title="Phóng to kích thước hoa (Hoặc dùng 2 ngón tay banh ra)">🔍 Phóng to</button>
+    <button id="btnDeleteFlower" class="btn" title="Xóa hoa đang chọn">🗑️ Xóa hoa</button>
+    <button id="btnSwitchCam" class="btn" title="Đổi camera trước/sau">🔄 Đổi Cam</button>
+    <button id="btnSnapshot" class="btn btn-snapshot" title="Chụp ảnh selfie AR cùng hoa">📸 Chụp AR</button>
+    <button id="btnSound" class="btn active" title="Bật/tắt âm thanh chuông gió">🔊 Âm thanh</button>
+    <button id="btnFullscreen" class="btn" title="Toàn màn hình">⛶ Phóng to</button>
+    <button id="btnMirror" class="btn active" title="Lật gương camera">🪞 Gương</button>
+  </nav>
+
+  <script type="module" src="lily.js"></script>
+</body>
+</html>
